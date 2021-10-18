@@ -10,9 +10,13 @@ clear all
 %% Se editan las Condiciones de Borde, para realizar 5 nuevos experimentos (Calenton en SSWP)
 %% -------------------------------------------------------------------------------------------------
 
-path1 = '/home/danveloso/Documentos/Cond_borde_SPEEDY_revision/';
+% path1 = '/home/danveloso/Documentos/Cond_borde_SPEEDY_revision/';
+path1 = '/home/matt/speedy_ver41.5/data/bc/t30/';
+path2 = '/home/matt/Documentos/SPEEDY/';
+cd '/home/matt/Documentos/SPEEDY/' 
 
-fid = fopen([path1,'sst_clim6110Hadisst.t30.sea.grd'],'r')
+
+fid = fopen([path1,'clim/sst_clim6110Hadisst.t30.sea.grd'],'r')
 
 variable = fread(fid, 'float','b'); % archivo de dim 55320x1
 sstc=reshape(variable,4610,12); %4610*12=55320
@@ -82,9 +86,10 @@ for k=1:length(calenton)
 
 end
 clear sstc11 sstc0
+% close all
 %%
 % --- Guardamos nuevas anomalias ---
-path2 = '/home/danveloso/Documentos/Fondecyt_Garreaud/SPEEDY_SST-SIC/';
+% path2 = '/home/danveloso/Documentos/Fondecyt_Garreaud/SPEEDY_SST-SIC/';
 for k=1:length(calenton)
     sstc2{k}=flipdim(sstc1{k},2);   %flips Y dim
     sstc2{k}=permute(sstc2{k},[3 2 1]);
@@ -93,7 +98,8 @@ for k=1:length(calenton)
     dummy{k}(2:48*96+1,:) = sstc2{k};            %puts good values within matrix
     dummy{k}=dummy{k}(:);
 
-    fidw =fopen([path2,'Cond_borde/sst_clim6110Hadisst_' num2str(calenton(k)) 'SSWPexp.t30.sea.grd'],'w')
+    fidw =fopen([path1,'clim/sst_clim6110Hadisst_' num2str(calenton(k)) '_SSWPexp.t30.sea.grd'],'w')
     count{k} = fwrite(fidw,dummy{k},'float','b');
 end
+
 
