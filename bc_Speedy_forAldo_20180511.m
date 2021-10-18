@@ -4,14 +4,16 @@
 
 %ruta a los archivos
 % path1 = '/home/danveloso/Documentos/Cond_borde_SPEEDY_revision/';
-path1 = '/home/matt/Documentos/SPEEDY/';
+path1 = '/home/matt/speedy_ver41.5/data/bc/t30/';
+path2 = '/home/matt/Documentos/SPEEDY/';
 cd '/home/matt/Documentos/SPEEDY/' 
 %----Climatology that comes with Speedy package
 
 % fid = fopen([path1,'sst_clim6110Hadisst.t30.sea.grd'], 'r')
-fid = fopen('/home/matt/speedy_ver41.5/data/bc/t30/clim/sst_7908clim.t30.sea.grd', 'r');
+% [fid,mensaje] = fopen('/home/matt/speedy_ver41.5/data/bc/t30/clim/sst_7908clim.t30.sea.grd', 'r');
+[fid,mensaje] = fopen([path1, 'clim/sst_clim6110Hadisst.t30.sea.grd'], 'r');
 variable = fread(fid, 'float','b'); % archivo de dim 55320x1
-
+% sstc=reshape(variable(1:8150472),679206,12);
 sstc=reshape(variable,4610,12); %4610*12=55320
 sstc=sstc(2:48*96+1,:); %48*96=4608 --> valor 1 y end es 2.5829e-41 (distinto a -9.999e+19 = NaN)
 sstc=reshape(sstc,96,48,12);
@@ -56,10 +58,10 @@ Y=[-87.159   -83.479   -79.777   -76.070   -72.362   -68.652 -64.942   -61.232  
 %----ERSSTv.2 SST Jan1854-Jan2007 --> largo 1837
 %----HadISST SST 1870/01-2017/04, dim=360x180x1768
 
-SST=ncread([path1,'HadISST_sst.nc'],'sst');
+SST=ncread([path2,'HadISST_sst.nc'],'sst');
 %SST2=ncread('/home/marcelo/data/ERSSTv.2_Jan2007.cdf','SST');
-lon=ncread([path1,'HadISST_sst.nc'],'longitude'); % -180:+180
-lat=ncread([path1,'HadISST_sst.nc'],'latitude'); % +89:-89
+lon=ncread([path2,'HadISST_sst.nc'],'longitude'); % -180:+180
+lat=ncread([path2,'HadISST_sst.nc'],'latitude'); % +89:-89
 % ncdisp('HadISST_sst.nc')
 %cambiamos dimension de longitud de -180:180 a 0:360
 lon = lon([181:end 1:180]); lon(181:end) = lon(181:end)+360; 
@@ -109,7 +111,7 @@ clim(ii) = mm;
 %Fills land with values interpolated from SST.
 %Otherwise in the interpolation procedure the ERSST doesn't have
 %good values along boundaries with continents.
-for j=1:1768 %--> largo vector fecha
+for j=1:1768 %--> largo vector fecha length(tiempo)
     SST2(j,:,:)=inpaint_nans(squeeze(SST(j,:,:)));
     j
 end
@@ -142,7 +144,7 @@ end
 
 clim=clim+273.15;
 
-break
+% break % ¿PARA QUÉ SIRVE ESTO?
 
 %------ Save New Clim 
 
@@ -154,7 +156,7 @@ dummy(2:48*96+1,:)=clim2;          %puts good values within matrix
 dummy=dummy(:);
 
 % fidw = fopen([path1,'Cond_borde/sst_clim6110Hadisst.t30.sea.grd'],'w')
-fidw = fopen('/home/matt/speedy_ver41.5/data/bc/t30/clim/sst_7908clim.t30.sea.grd', 'w')
+fidw = fopen([path1, 'clim/sst_clim6110Hadisst.t30.sea.grd'], 'w')
 count = fwrite(fidw,dummy,'float','b');
 
 clear dummy
@@ -171,15 +173,16 @@ dummy(2:48*96+1,:)=SSTa2;            %puts good values within matrix
 dummy=dummy(:);
 
 % fidw =fopen([path1,'Cond_borde/sst_anom6110Hadisst.t30.sea.grd'],'w')
-fidw = fopen('/home/matt/speedy_ver41.5/data/bc/t30/anom/noaa_anom_1854_2016_mean1979_2008.t30.grd', 'w')
+fidw = fopen([path1, 'anom/sst_anom6110Hadisst.t30.grd'], 'w')
 count = fwrite(fidw,dummy,'float','b');
 
 %% Climatologia para el hielo marino
 
 %ruta a los archivos
-path1 = '/home/danveloso/Escritorio/GEOFISICA/Fondecyt_Garreaud/SPEEDY_SST-SIC/';
+% path1 = '/home/danveloso/Escritorio/GEOFISICA/Fondecyt_Garreaud/SPEEDY_SST-SIC/';
+% path1 = '/home/matt/speedy_ver41.5/data/bc/t30/clim/';
 
-fid = fopen([path1,'seaice_7908clim.t30.sea.grd'], 'r')
+fid = fopen([path1,'clim/seaice_7908clim.t30.sea.grd'], 'r')
 variable = fread(fid, 'float','b'); % archivo de dim 55320x1
 
 icec=reshape(variable,4610,12); %4610*12=55320
@@ -199,9 +202,9 @@ X=0:3.75:360; X=X(1:96);
 Y=[-87.159   -83.479   -79.777   -76.070   -72.362   -68.652 -64.942   -61.232  -57.521   -53.810   -50.099   -46.389   -42.678   -38.967 -35.256   -31.545   -27.833  -24.122   -20.411   -16.700   -12.989    -9.278 -5.567    -1.856     1.856     5.567    9.278    12.989    16.700    20.411  24.122    27.833    31.545    35.256    38.967  42.678    46.389    50.099 53.810    57.521    61.232    64.942    68.652    72.362 76.070    79.777 83.479    87.159];
 
 %Hielo de hadISST
-ICE=ncread([path1,'HadISST_ice.nc'],'sic');
-lon=ncread([path1,'HadISST_ice.nc'],'longitude'); % -180:+180
-lat=ncread([path1,'HadISST_ice.nc'],'latitude'); % +89:-89
+ICE=ncread([path2,'HadISST_ice.nc'],'sic');
+lon=ncread([path2,'HadISST_ice.nc'],'longitude'); % -180:+180
+lat=ncread([path2,'HadISST_ice.nc'],'latitude'); % +89:-89
 
 %cambiamos dimension de longitud de -180:180 a 0:360
 lon = lon([181:end 1:180]); lon(181:end) = lon(181:end)+360;
@@ -242,7 +245,8 @@ dummy=ones(4610,12)*variable(1);   %creates a matrix of 2.5829e-41
 dummy(2:48*96+1,:)=clim2;          %puts good values within matrix
 dummy=dummy(:);
 
-fidw = fopen([path1,'Cond_borde/sic_clim6110Hadisst.t30.sea.grd'],'w')
+% fidw = fopen([path1,'Cond_borde/sic_clim6110Hadisst.t30.sea.grd'],'w')
+fidw = fopen([path1,'clim/sic_clim6110Hadisst.t30.sea.grd'],'w')
 count = fwrite(fidw,dummy,'float','b');
 
 clear dummy
@@ -252,9 +256,10 @@ clear dummy
 %% Se editan las Condiciones de Borde, para realizar Tropical Forcing y Extra-Tropical Experiments
 %% -------------------------------------------------------------------------------------------------
 
-path1 = '/media/danveloso/TOSHIBA EXT/GEOFISICA/Fondecyt_Garreaud/SPEEDY_SST-SIC/';
+% path1 = '/media/danveloso/TOSHIBA EXT/GEOFISICA/Fondecyt_Garreaud/SPEEDY_SST-SIC/';
 
-fid = fopen([path1,'Cond_borde/sst_anom6110Hadisst.t30.sea.grd'],'r')
+% fid = fopen([path1,'Cond_borde/sst_anom6110Hadisst.t30.sea.grd'],'r')
+fid = fopen([path1,'anom/sst_anom6110Hadisst.t30.sea.grd'],'r')
 
 variable = fread(fid, 'float','b'); % archivo de dim 8150480x1
 
@@ -286,7 +291,9 @@ dummy1=ones(4610,1768)*variable(1);   %creates a matrix of 2.5829e-41
 dummy1(2:48*96+1,:) = sstan1;            %puts good values within matrix
 dummy1=dummy1(:);
 
-fidw1 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_trexp.t30.sea.grd'],'w')
+% fidw1 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_trexp.t30.sea.grd'],'w')
+fidw1 =fopen([path1,'anom/sst_anom6110Hadisst_trexp.t30.sea.grd'],'w')
+
 count1 = fwrite(fidw1,dummy1,'float','b');
 
 
@@ -304,7 +311,9 @@ dummy2=ones(4610,1768)*variable(1);   %creates a matrix of 2.5829e-41
 dummy2(2:48*96+1,:)=sstan2;            %puts good values within matrix
 dummy2=dummy2(:);
 
-fidw2 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_etexp.t30.sea.grd'],'w')
+% fidw2 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_etexp.t30.sea.grd'],'w')
+fidw2 =fopen([path1,'anom/sst_anom6110Hadisst_etexp.t30.sea.grd'],'w')
+
 count2 = fwrite(fidw2,dummy2,'float','b');
 
 %% -------------------------------------------------------------------------------------------------
@@ -312,9 +321,10 @@ count2 = fwrite(fidw2,dummy2,'float','b');
 %% -------------------------------------------------------------------------------------------------
 clear all
 
-path1 = '/home/danveloso/Documentos/Fondecyt_Garreaud/SPEEDY_SST-SIC/';
+% path1 = '/home/danveloso/Documentos/Fondecyt_Garreaud/SPEEDY_SST-SIC/';
 
-fid = fopen([path1,'Cond_borde/sst_anom6110Hadisst.t30.sea.grd'],'r')
+% fid = fopen([path1,'Cond_borde/sst_anom6110Hadisst.t30.sea.grd'],'r')
+fid = fopen([path1,'anom/sst_anom6110Hadisst.t30.sea.grd'],'r')
 
 variable = fread(fid, 'float','b'); % archivo de dim 8150480x1
 
@@ -366,7 +376,9 @@ dummy1=ones(4610,1768)*variable(1);   %creates a matrix of 2.5829e-41
 dummy1(2:48*96+1,:) = sstan1;            %puts good values within matrix
 dummy1=dummy1(:);
 
-fidw1 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_SPexp.t30.sea.grd'],'w')
+% fidw1 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_SPexp.t30.sea.grd'],'w')
+fidw1 =fopen([path1,'anom/sst_anom6110Hadisst_SPexp.t30.sea.grd'],'w')
+
 count1 = fwrite(fidw1,dummy1,'float','b');
 
 
@@ -405,7 +417,9 @@ dummy2=ones(4610,1768)*variable(1);   %creates a matrix of 2.5829e-41
 dummy2(2:48*96+1,:)=sstan2;            %puts good values within matrix
 dummy2=dummy2(:);
 
-fidw2 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_SOexp.t30.sea.grd'],'w')
+% fidw2 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_SOexp.t30.sea.grd'],'w')
+fidw2 =fopen([path1,'anom/sst_anom6110Hadisst_SOexp.t30.sea.grd'],'w')
+
 count2 = fwrite(fidw2,dummy2,'float','b');
 
 
@@ -425,15 +439,15 @@ sstan3(:,:,1:35) = 0;
 sstan3(:,:,82:end) = 0;
 
 %%% Verificacion de que caja o region de aomalias este bien
-sstan0 = permute(sstan,[3 2 1]);
-sstan33 = permute(sstan3,[3 2 1]);
-for i=1:1768
-subplot(211),pcolor(X,Y(1:end/2),sstan33(:,1:end/2,i)'),colorbar, caxis([-2 2]), shading flat
-subplot(212),pcolor(X,Y(1:end/2),sstan0(:,1:end/2,i)'),colorbar, caxis([-2 2]), shading flat
-title(num2str(i/12+1870))
-pause(0.05)
-end
-clear sstan33 sstan0
+% sstan0 = permute(sstan,[3 2 1]);
+% sstan33 = permute(sstan3,[3 2 1]);
+% for i=1:1768
+% subplot(211),pcolor(X,Y(1:end/2),sstan33(:,1:end/2,i)'),colorbar, caxis([-2 2]), shading flat
+% subplot(212),pcolor(X,Y(1:end/2),sstan0(:,1:end/2,i)'),colorbar, caxis([-2 2]), shading flat
+% title(num2str(i/12+1870))
+% pause(0.05)
+% end
+% clear sstan33 sstan0
 
 % --- Guardamos nuevas anomalias ---
 sstan3=flipdim(sstan3,2);   %flips Y dim
@@ -443,5 +457,31 @@ dummy3=ones(4610,1768)*variable(1);   %creates a matrix of 2.5829e-41
 dummy3(2:48*96+1,:)=sstan3;            %puts good values within matrix
 dummy3=dummy3(:);
 
-fidw3 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_MLexp.t30.sea.grd'],'w')
+% fidw3 =fopen([path1,'Cond_borde/sst_anom6110Hadisst_MLexp.t30.sea.grd'],'w')
+fidw3 =fopen([path1,'anom/sst_anom6110Hadisst_MLexp.t30.sea.grd'],'w')
+
 count3 = fwrite(fidw3,dummy3,'float','b');
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
