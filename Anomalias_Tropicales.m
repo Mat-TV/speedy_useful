@@ -1,12 +1,12 @@
 %% Programa adaptado para calcular Cond. Borde para SPEEDY, de SST y SeaICE HadISST
 %20180511 --> se calculan condiciones de borde para experimentos:
 % Pacifico Sur, Latitudes medias Pacifico Sur, y Oceano Austral sector Pacifico.
-aseo
+aseo % https://github.com/Trufumut/MATLAB_useful/blob/main/aseo.m
 %% Preliminares
 %ruta a los archivos
 % path1 = '/home/danveloso/Documentos/Cond_borde_SPEEDY_revision/';
-path1 = '/home/matt/speedy_ver41.5/data/bc/t30/';
-path2 = '/home/matt/Documentos/SPEEDY/';
+path1 = '/home/matt/speedy_ver41.5/data/bc/t30/'; % path de datos
+path2 = '/home/matt/Documentos/SPEEDY/'; % path de utensilios
 cd '/home/matt/Documentos/SPEEDY/' 
 %----Climatology that comes with Speedy package
 
@@ -98,6 +98,8 @@ Lon = single([0 0.5:1:359.5])';
 [clim]=interpol2(Lon,flipdim(lat,1),flipdim(clim1,2),X,Y); %--> hacer flipdim SST y lat
 
 %Set to -9.9990e+19 climatology over continents
+clim_NaN = clim; % respaldo
+clim_NaN(ii) = NaN;
 clim(ii) = mm;
 
 % %Set values for sea ice as in the climatology that comes with Speedy.
@@ -125,16 +127,18 @@ SST2(:,:,1) = (SST2(:,:,2) + SST2(:,:,end))./2;
 %---Interpolation
 Lon = single([0 0.5:1:359.5])';
 [SST2]=interpol2(Lon,flipdim(lat,1),flipdim(SST2,2),X,Y); %--> hacer flipdim SST y lat
-clear id1000 ii Lon 
-% % Esto es para no hacer todos los cálculos de nuevo hasta acá
-%  save('calculados')
+clear id1000 ii Lon SSTclim
+% % -----------------------------------------------------
+% % Esto es para no hacer todos los cálculos de nuevo hasta acá:
+% %  save('calculados')
 %  calculados=load('calculados')
 %  nombres=structvars(calculados); % fx adjunta
 %  for i=1:length(nombres(:,1))
 %      eval(nombres(i,:))
 %  end
 %  clear nombres i calculados
- %
+%  %
+% % -----------------------------------------------------
 %Compute HadISST anomalies based on the climatology 1961-2010
 for j=1:12
   m=j;
@@ -143,9 +147,11 @@ for j=1:12
     m=m+12;
   end
 end
-
-% % Resotre HadISST climatology 1961-2010 in the Equatorial zone -12.989 a +12.989
+%
+% De aquí, solo correr el experimento deseado
+% % % % % ------
 % Experimento 1: toda la banda ecuatorial
+% exp=1;
 % indxeq = find(Y>-13&Y<13); 
 % for j=1:12
 %   m=j;
@@ -155,31 +161,44 @@ end
 %   end
 % end
 %
+% % % % % ------
 % Experimento 2: zona el niño
-indxeq = find(Y>-6 & Y<6); % Experimento: banda ecuatorial
+exp=2;
+indxeq = find(Y>-6 & Y<6);
 indyeq = find(X>190 & X<=240);
 for j=1:12
   m=j;
   while (m<=1768)
-    SSTa(m,indxeq,indyeq)=0; % aquí le pongo la alteración
+    SSTa(m,indxeq,indyeq)=1; % aquí le pongo la alteración (-1 y +1)
     m=m+12;
   end
 end
+% % % % % ------
 %
 %Set to 0 anomalies over continents
 for t=1:1768
     ll = find(SSTC(1,:,:) == mm);
-    SSTa(t,ll)=NaN; % AQUÍ HABÍA UN 0 PERO PUSE NaN en un momento
+    SSTa(t,ll)=0; % AQUÍ HABÍA UN 0 PERO PUSE NaN en un momento
 end
 
-% % % clim=clim+273.15;
+clim=clim+273.15;
 
 % break
 % clim_nonan=clim
 % clim_nonan(clim_nonan<-100) == NaN
 %
-%% Visualizar
-contourf(X',Y,squeeze(SSTa(200,:,:))), colorbar
+%% Visualizar los elementos a guardar
+% Ver la climatología
+figure
+for i=1:12
+    contourf(X',Y,squeeze(clim_NaN(i,:,:))), colorbar,caxis([-5 30])
+    title(num2str(i))
+    pause(0.5)
+end
+% Ver la anomalía, al menos para algunas fechas puestas a mano
+figure
+contourf(X',Y,squeeze(SSTa(500,:,:))), colorbar
+%
 %% Guardar los datos
 %------ Save New Clim 
 
@@ -191,9 +210,9 @@ dummy(2:48*96+1,:)=clim2;          %puts good values within matrix
 dummy=dummy(:);
 
 % fidw = fopen([path1,'Cond_borde/sst_clim6110Hadisst.t30.sea.grd'],'w')
-fidw = fopen([path1, 'clim/sst_clim6110Hadisst.t30.sea.grd'], 'w')
+fidw = fopen([path1, char('clim/sst_cEXP' + string(exp) + '.t30.sea.grd')], 'w');
 count = fwrite(fidw,dummy,'float','b');
-
+%
 clear dummy
 
 %------ Save New Anomalies
@@ -208,8 +227,10 @@ dummy(2:48*96+1,:)=SSTa2;            %puts good values within matrix
 dummy=dummy(:);
 
 % fidw =fopen([path1,'Cond_borde/sst_anom6110Hadisst.t30.sea.grd'],'w')
-fidw = fopen([path1, 'anom/sst_anom6110Hadisst.t30.grd'], 'w')
+fidw = fopen([path1, char('anom/sst_aEXP' + string(exp) + '.t30.grd')], 'w');
 count = fwrite(fidw,dummy,'float','b');
+%
+clear dummy
 %
 %
 %
