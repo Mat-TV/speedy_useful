@@ -1,6 +1,5 @@
 %% Programa adaptado para calcular Cond. Borde para SPEEDY, de SST y SeaICE HadISST
 %20180511 --> se calculan condiciones de borde para experimentos:
-% Pacifico Sur, Latitudes medias Pacifico Sur, y Oceano Austral sector Pacifico.
 aseo % https://github.com/Trufumut/MATLAB_useful/blob/main/aseo.m
 %% Preliminares
 %ruta a los archivos
@@ -57,11 +56,15 @@ Y=[-87.159   -83.479   -79.777   -76.070   -72.362   -68.652 -64.942   -61.232  
 
 %----ERSSTv.2 SST Jan1854-Jan2007 --> largo 1837
 %----HadISST SST 1870/01-2017/04, dim=360x180x1768
+%----HadISST SST 1870/01-2021/07, dim=360x180x1819 % ESTE ES TÓPICO 2021
 
 SST=ncread([path2,'HadISST_sst.nc'],'sst');
 %SST2=ncread('/home/marcelo/data/ERSSTv.2_Jan2007.cdf','SST');
 lon=ncread([path2,'HadISST_sst.nc'],'longitude'); % -180:+180
 lat=ncread([path2,'HadISST_sst.nc'],'latitude'); % +89:-89
+fechasSST=double(ncread([path2,'HadISST_sst.nc'],'time'));
+fecha0 = datenum('01-01-1870');
+fechasSST = fechasSST + fecha0; % enero 1870:julio 2021
 % ncdisp('HadISST_sst.nc')
 %cambiamos dimension de longitud de -180:180 a 0:360
 lon = lon([181:end 1:180]); lon(181:end) = lon(181:end)+360; 
@@ -72,19 +75,19 @@ SST=permute(SST,[3 2 1]); %---> (tiempo,lat,lon) --> así se necesita?
 %SST=[SST; SST2];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Se calcula primero la climatologia. Para ello se eliminarán los -1000°C
+% % % % % Se calcula primero la climatologia. Para ello se eliminarán los -1000°C
 id1000 = find(SST == -1000);
 SST(id1000) = NaN;  
 
 %---Se desea obtener climatologia 1961-2010 (50 años)
-tiempo = datenum(1870,1:1768,1);
+% tiempo = datenum(1870,1:length(fechasSST),15);
 % 01/1961 = posicion 1093 ; 12/2010 = posicion 1692
 SSTclim = SST(1093:1692,:,:);
 SSTclim = reshape(SSTclim,[12 50 180 360]);
 clim1 = squeeze(nanmean(SSTclim,2));
 
 %Fills land with values interpolated from SST.
-for j=1:12 %--> largo vector fecha
+for j=1:12 %--> largo del año
     clim1(j,:,:)=inpaint_nans(squeeze(clim1(j,:,:)));
     j
 end
@@ -107,12 +110,12 @@ clim(ii) = mm;
 % clim(jj)=sstc(jj)-273.15;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Luego se calculan las anomalias
+% % % % % Luego se calculan las anomalias
 
 %Fills land with values interpolated from SST.
 %Otherwise in the interpolation procedure the ERSST doesn't have
 %good values along boundaries with continents.
-for j=1:1768 %--> largo vector fecha
+for j=1:length(fechasSST) %--> largo vector fecha
     SST2(j,:,:)=inpaint_nans(squeeze(SST(j,:,:)));
     j
 end
@@ -142,46 +145,46 @@ clear id1000 ii Lon SSTclim
 %Compute HadISST anomalies based on the climatology 1961-2010
 for j=1:12
   m=j;
-  while (m<=1768)
+  while (m<=length(fechasSST))
     SSTa(m,:,:)=SST2(m,:,:)-clim(j,:,:);
     m=m+12;
   end
 end
 %
 % De aquí, solo correr el experimento deseado
-% % % % % ------
+% % % % % ----------------
 % Experimento 1: toda la banda ecuatorial
 % exp=1;
 % indxeq = find(Y>-13&Y<13); 
 % for j=1:12
 %   m=j;
-%   while (m<=1768)
+%   while (m<=length(fechasSST))
 %     SSTa(m,indxeq,:)=1;%clim(j,indxeq,:);
 %     m=m+12;
 %   end
 % end
 %
-% % % % % ------
+% % % % % ----------------
 % Experimento 2: zona el niño
 exp=2;
 indxeq = find(Y>-6 & Y<6);
 indyeq = find(X>190 & X<=240);
 for j=1:12
   m=j;
-  while (m<=1768)
+  while (m<=length(fechasSST))
     SSTa(m,indxeq,indyeq)=1; % aquí le pongo la alteración (-1 y +1)
     m=m+12;
   end
 end
-% % % % % ------
+% % % % % ----------------
 %
 %Set to 0 anomalies over continents
-for t=1:1768
+for t=1:length(fechasSST)
     ll = find(SSTC(1,:,:) == mm);
-    SSTa(t,ll)=0; % AQUÍ HABÍA UN 0 PERO PUSE NaN en un momento
+    SSTa(t,ll)=0; % AQUÍ HABÍA UN 0 PERO PONER NaN para visualizar
 end
 
-clim=clim+273.15;
+clim=clim+273.15; %aquí lo deja en Kelvin
 
 % break
 % clim_nonan=clim
@@ -192,7 +195,7 @@ clim=clim+273.15;
 figure
 for i=1:12
     contourf(X',Y,squeeze(clim_NaN(i,:,:))), colorbar,caxis([-5 30])
-    title(num2str(i))
+    title(num2str(i)) 
     pause(0.5)
 end
 % Ver la anomalía, al menos para algunas fechas puestas a mano
@@ -202,12 +205,12 @@ contourf(X',Y,squeeze(SSTa(500,:,:))), colorbar
 %% Guardar los datos
 %------ Save New Clim 
 
-clim2=flipdim(clim,2);   %flips Y dim
+clim2=flipdim(clim,2);   % voltea la dimensión Y
 clim2=permute(clim2,[3 2 1]);
-clim2=reshape(clim2,[4608,12]);
-dummy=ones(4610,12)*variable(1);   %creates a matrix of 2.5829e-41
-dummy(2:48*96+1,:)=clim2;          %puts good values within matrix
-dummy=dummy(:);
+clim2=reshape(clim2,[length(clim2(:,1,1))*length(clim2(1,:,1)),12]); % X*Y=4608
+dummy=ones(4610,12)*variable(1);   % crea una matriz de 2.5829e-41
+dummy(2:48*96+1,:)=clim2;          % rellena los espacios correspondientes
+dummy=dummy(:); % hace de dummy una sola columna
 
 % fidw = fopen([path1,'Cond_borde/sst_clim6110Hadisst.t30.sea.grd'],'w')
 fidw = fopen([path1, char('clim/sst_cEXP' + string(exp) + '.t30.sea.grd')], 'w');
@@ -217,13 +220,13 @@ clear dummy
 
 %------ Save New Anomalies
 
-SSTa2=flipdim(SSTa,2);   %flips Y dim
+SSTa2=flipdim(SSTa,2);   % voltea la dimensión Y
 % SSTa2=permute(SSTa2,[1 3 2]);
 SSTa2=permute(SSTa2,[3 2 1]);
 % SSTa2=SSTa(:,:)';
-SSTa2=reshape(SSTa2,[4608,1768]);
-dummy=ones(4610,1768)*variable(1);   %creates a matrix of 2.5829e-41
-dummy(2:48*96+1,:)=SSTa2;            %puts good values within matrix
+SSTa2=reshape(SSTa2,[length(SSTa2(:,1,1))*length(SSTa2(1,:,1)),length(fechasSST)]);
+dummy=ones(4610,length(fechasSST))*variable(1);   % crea una matriz de 2.5829e-41
+dummy(2:48*96+1,:)=SSTa2;            % rellena los espacios correspondientes
 dummy=dummy(:);
 
 % fidw =fopen([path1,'Cond_borde/sst_anom6110Hadisst.t30.sea.grd'],'w')
