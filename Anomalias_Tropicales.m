@@ -3,16 +3,16 @@
 aseo % https://github.com/Trufumut/MATLAB_useful/blob/main/aseo.m
 %% Preliminares
 %ruta a los archivos
-cd '/home/matt/Documentos/SPEEDY/';  % LINUX
-path1 = '/home/matt/speedy_ver41.5/data/bc/t30/'; % path de datos % LINUX
-path2 = '/home/matt/Documentos/SPEEDY/'; % path de utensilios %LINUX
-% cd 'C:\Users\fredo\Documents\Geof\Tópico 2021-2\Final\'; % WINDOWS
-% path1 = 'C:\Users\fredo\Documents\Geof\Tópico 2021-2\Final\in\'; % WINDOWS
-% path2 = 'C:\Users\fredo\Documents\Geof\Tópico 2021-2\Final\out\'; % WINDOWS
+% cd '/home/matt/Documentos/SPEEDY/';  % LINUX
+% path1 = '/home/matt/speedy_ver41.5/data/bc/t30/'; % path de datos % LINUX
+% path2 = '/home/matt/Documentos/SPEEDY/'; % path de utensilios %LINUX
+cd 'C:\Users\fredo\Documents\Geof\Tópico 2021-2\Final\'; % WINDOWS
+path1 = 'C:\Users\fredo\Documents\Geof\Tópico 2021-2\Final\in\'; % WINDOWS
+path2 = 'C:\Users\fredo\Documents\Geof\Tópico 2021-2\Final\out\'; % WINDOWS
 %----Climatology that comes with Speedy package
 
-[fid,mensaje] = fopen([path1, 'clim/sst_clim6110Hadisst.t30.sea.grd'], 'r'); % LINUX
-% [fid,mensaje] = fopen([path1, 'sst_clim6110Hadisst.t30.sea.grd'], 'r'); % WINDOWS
+% [fid,mensaje] = fopen([path1, 'clim/sst_clim6110Hadisst.t30.sea.grd'], 'r'); % LINUX
+[fid,mensaje] = fopen([path1, 'sst_clim6110Hadisst.t30.sea.grd'], 'r'); % WINDOWS
 variable = fread(fid, 'float','b'); % archivo de dim 55320x1
 
 sstc=reshape(variable,4610,12); %4610*12=55320
@@ -60,8 +60,8 @@ Y=[-87.159   -83.479   -79.777   -76.070   -72.362   -68.652 -64.942   -61.232  
 %----HadISST SST 1870/01-2017/04, dim=360x180x1768
 %----HadISST SST 1870/01-2021/07, dim=360x180x1819 % ESTE ES TÓPICO 2021
 
-modelo = [path2,'HadISST_sst.nc']; % LINUX
-% modelo = 'HadISST_sst.nc'; % WINDOWS
+% modelo = [path2,'HadISST_sst.nc']; % LINUX
+modelo = 'HadISST_sst.nc'; % WINDOWS
 
 SST=ncread(modelo,'sst');
 %SST2=ncread('/home/marcelo/data/ERSSTv.2_Jan2007.cdf','SST');
@@ -139,12 +139,12 @@ clear id1000 ii Lon SSTclim
 % % -----------------------------------------------------
 % % Esto es para no hacer todos los cÃ¡lculos de nuevo hasta acÃ¡:
 % %  save('calculados')
-%  calculados=load('calculados')
-%  nombres=structvars(calculados); % fx adjunta
-%  for i=1:length(nombres(:,1))
-%      eval(nombres(i,:))
-%  end
-%  clear nombres i calculados
+ calculados=load('calculados')
+ nombres=structvars(calculados); % fx adjunta
+ for i=1:length(nombres(:,1))
+     eval(nombres(i,:))
+ end
+ clear nombres i calculados
 %  %
 % % -----------------------------------------------------
 %Compute HadISST anomalies based on the climatology 1961-2010
@@ -188,6 +188,9 @@ clim=clim+273.15; %aquÃ­ lo deja en Kelvin
 % clim_nonan=clim
 % clim_nonan(clim_nonan<-100) == NaN
 %
+% Recorte para no usar desde 1870 sino que desde 1970
+SSTa = SSTa(1201:end,:,:);
+fechasSST = fechasSST(1201:end)
 %% Visualizar los elementos a guardar
 % Ver la climatologÃ­a
 figure
@@ -198,37 +201,37 @@ for i=1:12
 end
 % Ver la anomalÃ­a, al menos para algunas fechas puestas a mano
 figure
-contourf(X',Y,squeeze(SSTa(500,:,:))), colorbar
+contourf(X',Y,squeeze(SSTa(200,:,:))), colorbar
 %
 %% Guardar los datos
 %------ Save New Clim 
 
-clim2=flipdim(clim,2);   % voltea la dimensiÃ³n Y
+clim2=flipdim(clim,2);   % voltea la dimensión Y
 clim2=permute(clim2,[3 2 1]);
 clim2=reshape(clim2,[length(clim2(:,1,1))*length(clim2(1,:,1)),12]); % X*Y=4608
 dummy=ones(4610,12)*variable(1);   % crea una matriz de 2.5829e-41
 dummy(2:48*96+1,:)=clim2;          % rellena los espacios correspondientes
 dummy=dummy(:); % hace de dummy una sola columna
 
-fidw = fopen([path1, char('clim/sst_cEXP' + string(exp) + '.t30.sea.grd')], 'w'); % LINUX
-% fidw = fopen([path2, char('sst_cEXP' + string(exp) + '.t30.sea.grd')], 'w'); % WINDOWS
+% fidw = fopen([path1, char('clim/sst_cEXP' + string(exp) + '.t30.sea.grd')], 'w'); % LINUX
+fidw = fopen([path2, char('sst_cEXP' + string(exp) + '.t30.sea.grd')], 'w'); % WINDOWS
 count = fwrite(fidw,dummy,'float','b');
 %
 clear dummy
 
 %------ Save New Anomalies
 
-SSTa2=flipdim(SSTa,2);   % voltea la dimensiÃ³n Y
+SSTa2=flipdim(SSTa,2);   % voltea la dimensión Y
 % SSTa2=permute(SSTa2,[1 3 2]);
 SSTa2=permute(SSTa2,[3 2 1]);
 % SSTa2=SSTa(:,:)';
-SSTa2=reshape(SSTa2,[length(SSTa2(:,1,1))*length(SSTa2(1,:,1)),length(fechasSST)]);
-dummy=ones(4610,length(fechasSST))*variable(1);   % crea una matriz de 2.5829e-41
+SSTa2=reshape(SSTa2,[length(SSTa2(:,1,1))*length(SSTa2(1,:,1)),length(SSTa(:,1,1))]);
+dummy=ones(4610,length(SSTa(:,1,1)))*variable(1);   % crea una matriz de 2.5829e-41
 dummy(2:48*96+1,:)=SSTa2;            % rellena los espacios correspondientes
 dummy=dummy(:);
 
-fidw = fopen([path1, char('anom/sst_aEXP' + string(exp) + '.t30.grd')], 'w'); % LINUX
-% fidw = fopen([path2, char('sst_aEXP' + string(exp) + '.t30.grd')], 'w'); % WINDOWS
+% fidw = fopen([path1, char('anom/sst_aEXP' + string(exp) + '.t30.grd')], 'w'); % LINUX
+fidw = fopen([path2, char('sst_aEXP' + string(exp) + '.t30.grd')], 'w'); % WINDOWS
 count = fwrite(fidw,dummy,'float','b');
 %
 clear dummy
